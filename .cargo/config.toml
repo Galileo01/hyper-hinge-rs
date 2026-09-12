@@ -1,0 +1,3 @@
+[env]
+# Match Tauri's minimum system version for direct cargo test/clippy builds too.
+MACOSX_DEPLOYMENT_TARGET = "12.0"

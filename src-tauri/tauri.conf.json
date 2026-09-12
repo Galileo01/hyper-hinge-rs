@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "HyperHinge",
+  "version": "0.1.0",
+  "identifier": "com.hyperhinge.desktop",
+  "build": {
+    "beforeDevCommand": "npm run prepare:desktop && npm run dev:web",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeBuildCommand": "npm run build:frontend && npm run native",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "HyperHinge",
+        "width": 1440,
+        "height": 960,
+        "minWidth": 800,
+        "minHeight": 620,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "backgroundColor": "#101010",
+        "create": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; frame-src 'none'",
+      "capabilities": ["main"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app"],
+    "icon": ["../public/hyperhinge.icns", "../public/hyperhinge.png"],
+    "externalBin": ["binaries/lid-sensor"],
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { onFullscreenChange } from "./hinge/desktop";
 import { apps } from "./apps/registry";
-import { hinge, useHinge } from "./hinge/api";
+import { hinge, useHinge } from "./hinge/index";
 import {
   ExpandIcon,
   HomeIcon,
@@ -31,8 +32,21 @@ export function App() {
   };
   useEffect(() => {
     const keyboard = (event: KeyboardEvent) => {
-      if (settings || contribute) return;
-      if ((event.target as HTMLElement).matches("input,select,textarea"))
+      if (
+        settings ||
+        contribute ||
+        event.defaultPrevented ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.repeat
+      )
+        return;
+      if (
+        (event.target as HTMLElement).closest(
+          "input,select,textarea,[contenteditable]:not([contenteditable=false]),dialog[open]",
+        )
+      )
         return;
       if (event.key === "Escape") {
         if (fullscreen) void toggleFullscreen(false);
@@ -41,18 +55,12 @@ export function App() {
       if (event.key.toLowerCase() === "f") void toggleFullscreen();
       if (event.key.toLowerCase() === "h") setSelected(null);
     };
-    const change = () => {
-      if (!window.hyperHinge && !document.fullscreenElement)
-        setFullscreen(false);
-    };
     window.addEventListener("keydown", keyboard);
-    document.addEventListener("fullscreenchange", change);
     return () => {
       window.removeEventListener("keydown", keyboard);
-      document.removeEventListener("fullscreenchange", change);
     };
   }, [fullscreen, settings, contribute]);
-  useEffect(() => window.hyperHinge?.onFullscreenChange(setFullscreen), []);
+  useEffect(() => onFullscreenChange(setFullscreen), []);
   return (
     <div
       className={`hyper-shell ${app ? "in-app" : "at-home"} ${fullscreen ? "is-fullscreen" : ""}`}

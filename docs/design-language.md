@@ -1,79 +1,79 @@
-# HyperHinge design language
+# HyperHinge 设计语言
 
-This document is normative. New apps inherit the shared shell. Do not redesign the brand while adding functionality.
+本文档具有规范效力。新应用继承共享外壳；添加功能时不得重新设计品牌。
 
-## Identity
+## 品牌识别
 
-- Product name: **HyperHinge**. Repository: `magiccube/hyper-hinge`.
-- Slogan, verbatim: **Did you know there's a hinge sensor in your Macbook?**
-- Structure: an iPad-like home screen. Useful live widgets come first, then application icons. No permanent dashboard sidebar. Derive the installed app list and count from the registry.
-- Visual reference: the early Nothing OS monochrome/red widget language, dot typography, rounded system controls, and restrained spacing. Not Apple glassmorphism, a generic SaaS dashboard, or an editorial poster.
+- 产品名称：**HyperHinge**。仓库：`magiccube/hyper-hinge`。
+- 标语必须原样使用：**Did you know there's a hinge sensor in your Macbook?**
+- 结构：类似 iPad 的主屏幕。先展示有用的实时组件，再展示应用图标。不设置常驻仪表盘侧栏；已安装应用的列表和数量由注册表生成。
+- 视觉参考：早期 Nothing OS 的黑白/红色组件语言、点阵字体、圆角系统控件和克制的间距。不得采用 Apple 玻璃拟态、通用 SaaS 仪表盘或编辑型海报风格。
 
-## Fonts — mandatory
+## 字体——强制要求
 
-| Role                                                                     | Face        | Implementation        |
-| ------------------------------------------------------------------------ | ----------- | --------------------- |
-| Brand, page headings, major numeric readouts                             | **Ndot 57** | `var(--font-display)` |
-| App names under icons, body, captions, settings, buttons, keyboard hints | **Inter**   | `var(--font-body)`    |
+| 用途                                               | 字体        | 实现                  |
+| -------------------------------------------------- | ----------- | --------------------- |
+| 品牌、页面标题、主要数字读数                       | **Ndot 57** | `var(--font-display)` |
+| 图标下方应用名称、正文、说明、设置、按钮、键盘提示 | **Inter**   | `var(--font-body)`    |
 
-The supplied local display file is **Ndot 57 Aligned**. Do not substitute a CSS dot pattern, Doto, a system monospace, a pixel font, or a faux dotted SVG alphabet. Do not silently ship the fallback. Build checks require the actual font file; runtime QA must verify it loads.
+提供的本地展示字体为 **Ndot 57 Aligned**。不得用 CSS 点阵、Doto、系统等宽字体、像素字体或伪点阵 SVG 字母替代。不得静默发布后备字体。构建检查要求真实字体文件，运行时 QA 必须确认字体已加载。
 
-Use dot typography for prominent short text. Do not use it for small paragraphs or dense controls. Preserve readable Inter for full sentences. Do not add serif fonts or a third decorative face. `src/tokens.css` owns all font faces and family tokens. Fonts load locally, including in a packaged app with no network.
+短而醒目的文字使用点阵字体；小字号段落或密集控件不要使用。完整句子保持易读的 Inter。不要添加衬线字体或第三种装饰字体。`src/tokens.css` 统一管理字体及字体族变量。字体必须在本地加载，打包应用离线时也应可用。
 
-## Shell palette — mandatory
+## 外壳配色——强制要求
 
-| Token             | Value     | Use                                              |
-| ----------------- | --------- | ------------------------------------------------ |
-| `--color-bg`      | `#101010` | Wallpaper / canvas backdrop                      |
-| `--color-surface` | `#242424` | Dark widgets and dock                            |
-| `--color-raised`  | `#303030` | Pressable surfaces / keycaps                     |
-| `--color-paper`   | `#eeeeee` | Light widgets and icons                          |
-| `--color-text`    | `#f5f5f5` | Primary text                                     |
-| `--color-muted`   | `#a5a5a5` | Secondary text                                   |
-| `--color-dim`     | `#787878` | Tertiary details                                 |
-| `--color-line`    | `#414141` | Necessary separators                             |
-| `--color-red`     | `#e5232e` | Active controls, sensor indicator, focal accents |
-| `--color-ink`     | `#101010` | Content on light surfaces                        |
+| 变量              | 值        | 用途                           |
+| ----------------- | --------- | ------------------------------ |
+| `--color-bg`      | `#101010` | 壁纸/画布背景                  |
+| `--color-surface` | `#242424` | 深色组件和 Dock                |
+| `--color-raised`  | `#303030` | 可按压表面/键帽                |
+| `--color-paper`   | `#eeeeee` | 浅色组件和图标                 |
+| `--color-text`    | `#f5f5f5` | 主要文字                       |
+| `--color-muted`   | `#a5a5a5` | 次要文字                       |
+| `--color-dim`     | `#787878` | 三级信息                       |
+| `--color-line`    | `#414141` | 必要分隔线                     |
+| `--color-red`     | `#e5232e` | 激活控件、传感器指示和视觉焦点 |
+| `--color-ink`     | `#101010` | 浅色表面上的内容               |
 
-CSS colors reference tokens. Red is a deliberate signal, not a background wash applied to every component. No green online dots, purple/blue shell gradients, neon glow, cream poster cards, or random semantic colors. Unavailable states use gray plus explicit text; color alone never conveys state.
+CSS 颜色必须引用这些变量。红色用于明确的信号，不应成为所有组件的背景。禁止绿色在线圆点、紫色/蓝色外壳渐变、霓虹光、奶油色海报卡片和随意的语义色。不可用状态使用灰色并配合明确文字，不能只靠颜色传达。
 
-## Components and proportion
+## 组件与比例
 
-- Widgets use 28px corners, light or dark solid fills, no decorative nested cards. Angle and motion are live data. Motion bars represent recent measured velocities, not a fabricated waveform.
-- App icons use a consistent rounded-square silhouette (~30% radius). Desktop size is 132–150px; compact width uses 80px. App labels stay on one line. The entire icon/label group is clickable.
-- The monster icon is a small window with a red frame. A real 3D monster peeks out. It shares the model with the game, rather than displaying unrelated stock art.
-- Home-screen spacing follows the widget/icon columns. Keep usable empty space. Do not add invented weather, fake productivity counts, a giant marketing hero, repeated feature panels, or inactive page indicators.
-- A compact dock contains the input source, simulation switch and settings. Only show the simulator slider while simulation is enabled. Settings hold calibration.
-- Native window controls remain native. Never draw fake traffic lights, a URL bar or a pretend operating-system frame.
-- Every app has a home route and shares fullscreen. F toggles fullscreen, H goes home, Esc first exits fullscreen and otherwise returns home. Do not intercept the keys while a modal or form field is active.
+- 组件使用 28px 圆角、浅色或深色纯色填充，不添加装饰性嵌套卡片。角度和运动必须是真实数据；运动条表示近期测得的速度，不得伪造波形。
+- 应用图标使用统一圆角方形轮廓（圆角约为 30%）。桌面尺寸为 132–150px，紧凑宽度使用 80px。应用标签保持单行，图标与标签整体都可点击。
+- 怪兽图标是带红色边框的小窗口，真实 3D 怪兽从中探出，并与游戏共享同一模型，不使用无关素材。
+- 主屏幕间距遵循组件/图标列，保留可用留白。不要添加虚构天气、假生产力数字、巨大营销主视觉、重复功能面板或无效分页指示。
+- 紧凑 Dock 包含输入来源、模拟开关和设置。仅在开启模拟时显示角度滑块；校准位于设置中。
+- 保留原生窗口控件。不得绘制假红绿灯、地址栏或伪操作系统边框。
+- 每个应用都能返回主屏幕并共享全屏。F 切换全屏，H 返回主屏幕；Esc 优先退出全屏，否则返回主屏幕。模态对话框或表单字段处于活动状态时不得拦截这些按键。
 
-## 3D/game art exception
+## 3D/游戏美术例外
 
-The shell, HUD, labels, menus and controls always obey the monochrome/red palette and fonts above. The actual 3D scene and rendered app-icon artwork may use a coherent character/material palette. This exception is explicitly requested for the owner-requested green cyclops: lime-green textured skin, teal iris, ivory horns and teeth, and warm stage lighting.
+外壳、HUD、标签、菜单和控件始终遵循上述黑白/红色配色与字体。实际 3D 场景和渲染后的应用图标可以使用协调的角色/材质配色。项目所有者明确要求绿色独眼怪兽使用青柠绿纹理皮肤、蓝绿色虹膜、象牙色角和牙齿，以及温暖的舞台灯光。
 
-The monster is procedural 3D geometry with a single large eye, pear-shaped body, slim articulated limbs, materials, depth, lights and continuously animated eyelids, gaze, eyebrows, breathing, fingers and arms. The owner-provided green cyclops references supersede the previous cyan/purple furry character. Reference quality: an appealing American animated-film/game creature. Do not replace the scene with a raster screenshot, CSS blob, flat illustration, or a finite sprite-state swap. Do not claim film-production fidelity for a prototype model. Model animation is continuously driven by game arousal, derived from hinge movement.
+怪兽由程序化 3D 几何体构成，具有一只大眼睛、梨形身体、细长关节肢体、材质、深度和灯光；眼睑、视线、眉毛、呼吸、手指及手臂持续动画。所有者提供的绿色独眼怪兽参考取代旧的青色/紫色毛绒角色。参考品质为有吸引力的美式动画电影/游戏角色。不得用栅格截图、CSS 色块、扁平插画或有限精灵状态替代场景；不得声称原型模型达到电影生产资产的质量。模型动画由铰链运动所产生的游戏唤醒程度持续驱动。
 
-The Lid Lab model represents the real lid pivot. Its display plane rotates relative to its base using the angle in degrees. Keep its technical illustration legible. The Accordion folds are geometric UI art, driven by the live angle.
+Lid Lab 模型表现真实屏幕转轴：显示平面按角度值相对底座旋转，并保持技术示意清晰。Accordion 的风箱是由实时角度驱动的几何界面美术。
 
-## Motion, accessibility, and performance
+## 动效、无障碍与性能
 
-- UI transitions: 120–200ms, gentle transform/opacity changes. No bouncing marketing animation or gratuitous parallax.
-- Respect reduced-motion for ornamental transitions. Hinge-driven educational geometry and game feedback remain explicit functional motion; disable decorative camera movement.
-- Every control is keyboard operable and named. Restore focus after dialogs; keep native dialog focus trapping. Provide text for unavailable sensor and WebGL states.
-- Support the main desktop window and verify 320, 375, 414, and 768px widths for the browser preview. No horizontal overflow, clipped controls, or wrapping app labels.
-- Use one native sensor service and one shared store. App render loops read the latest snapshot; do not run hardware reads per frame.
-- Cancel animation frames, dispose Three.js geometry/materials/textures and Web Audio nodes on unmount. Cap pixel ratio; icon renderers use lower geometry detail. Do not keep the full game renderer alive on the home screen.
+- UI 过渡为 120–200ms，使用轻柔的位移/透明度变化。禁止弹跳式营销动画或多余视差。
+- 装饰性过渡遵循减少动态效果设置。铰链驱动的教学几何和游戏反馈属于明确的功能性运动；关闭装饰性相机运动。
+- 所有控件都可使用键盘操作并具有名称。关闭对话框后恢复焦点，保留原生对话框焦点约束。传感器不可用和 WebGL 不可用状态必须提供文字说明。
+- 支持主要桌面窗口，并在浏览器预览中验证 320、375、414 和 768px 宽度。不得出现横向溢出、控件裁切或应用标签换行。
+- 仅使用一个原生传感器服务和一个共享状态仓库。应用渲染循环读取最新快照，不得逐帧读取硬件。
+- 卸载时取消动画帧，释放 Three.js 几何体、材质、纹理和 Web Audio 节点。限制像素比，图标渲染器使用较低几何细节；主屏幕不得保持完整游戏渲染器运行。
 
-## Review gate
+## 评审门槛
 
-Check exact slogan, font load, palette, widget hierarchy, all registered app routes, the peeking icon, fullscreen/home behavior, simulator labeling, and unavailable states. New app contributions must include a screenshot and describe how hinge angle or motion affects the interaction. Changes to these brand rules require explicit project-owner direction.
+检查精确标语、字体加载、配色、组件层级、全部已注册应用路由、探头图标、全屏/主屏幕行为、模拟器标注和不可用状态。新应用贡献必须附截图，并说明铰链角度或运动如何影响交互。修改这些品牌规则必须获得项目所有者的明确指示。
 
-References: [Nothing OS](https://us.nothing.tech/nothing-os), [Nothing community discussion of Ndot 57](https://nothing.community/en/d/104-ndot57-the-nothing-typeface), and the owner-provided home-screen / monster references. `docs/home-concept.png` is the initial Nothing concept; subsequent explicit owner changes add the widget row, exact slogan and real 3D window icon. It is not a frozen screenshot to copy over those newer requirements.
+参考：[Nothing OS](https://us.nothing.tech/nothing-os)、[Nothing 社区关于 Ndot 57 的讨论](https://nothing.community/en/d/104-ndot57-the-nothing-typeface)，以及所有者提供的主屏幕/怪兽参考。`docs/home-concept.png` 是最初的 Nothing 概念图；之后所有者明确增加了组件行、精确标语和真实 3D 窗口图标。它不是覆盖后续要求的固定截图模板。
 
 ## The Other Side · 屏幕后面
 
-Owner-requested app: a monochrome desktop lifts in perspective as the lid closes from 105° to 35°, revealing a real procedural 3D miniature city. The city material palette includes teal, terracotta, warm windows, foliage and sandstone, inspired by the supplied miniature-city reference. The shell retains its prescribed tokens. Reopening reverses the reveal; unavailable input freezes the scene at its last angle. Reduced motion stops traffic. No full closure is needed.
+所有者要求的应用：屏幕从 105° 合至 35° 时，黑白桌面以透视方式抬起，露出真实的程序化 3D 微缩城市。城市材质受所提供参考启发，包含蓝绿色、赤陶色、暖色窗户、植被和砂岩；外壳仍使用规定变量。重新打开屏幕会反向收起城市；输入不可用时场景冻结在最后角度；减少动态效果模式会停止车流。无需完全合盖。
 
 ## Laptop Pinball
 
-Owner-requested app: a real Three.js table rotates about its hinge axis. A silver ball rolls in a central guide lane under projected gravity and damping. Closing below the round’s neutral angle rolls away; opening rolls back. Neutral defaults to 105° and can be reset while paused. Each course requires two continuous, low-speed stops in alternating directions before the final hole opens. The three courses tighten hold, capture and time requirements (28/25/24 seconds). Both open ends drain the ball; sustained full tilt loses. All courses are reachable using 75–135° simulated lid angles. The final red-ringed hole is an actual opening in the mesh, covered until unlocked. Freeze mechanics on unavailable input, lost focus, hidden document or open dialog. Home icons use a monochrome/red table glyph. All game copy is English.
+所有者要求的应用：真实 Three.js 球桌绕铰链轴旋转；银色球在中央导轨中受投影重力和阻尼作用滚动。低于本局中立角度时合屏会使球滚远，开屏会使球滚回。中立角度默认 105°，暂停时可重设。每关要求玩家在两个交替方向目标上连续低速停稳，才能打开最终球洞。三关依次收紧保持、捕获和时间要求（28/25/24 秒）。球从任一开放端滚出都会丢失；持续最大倾斜会失败。所有关卡均可用 75–135° 的模拟角度完成。最终红圈球洞是网格中的真实开口，解锁前由盖板遮挡。输入不可用、窗口失焦、文档隐藏或对话框打开时冻结物理模拟。主屏幕图标使用黑白/红色球桌图形。所有游戏界面文案使用英文。

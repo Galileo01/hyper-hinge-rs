@@ -1,35 +1,37 @@
-# Make the next HyperHinge app
+# 制作下一个 HyperHinge 应用
 
-A hinge is a surprisingly good controller. Help find out what else it can do.
+铰链是一个出人意料的好控制器，欢迎一起探索它还能做什么。
 
-New little apps are especially welcome: an instrument, a game, a piece of generative art, an accessibility tool, or something we haven't thought of. You can contribute entirely in browser simulation; owning a supported MacBook is not required.
+尤其欢迎新的小应用：乐器、游戏、生成艺术、无障碍工具，或任何尚未想到的创意。贡献者可以完全使用浏览器模拟模式，无需拥有支持传感器的 MacBook。
 
-## Start small
+## 从小应用开始
 
-1. Follow the setup in README.md.
-2. Read `docs/design-language.md`, `docs/native-api.md` and `AGENTS.md`.
-3. Copy `examples/angle-meter/AngleMeter.tsx` into a new `src/apps/<id>/` folder.
-4. Add a `MiniAppDefinition` to `src/apps/registry.ts`.
-5. Use the shared input. Home, fullscreen, settings and simulation already work.
-6. Open a pull request with a short description, a screenshot or video, controls, and what you tested.
+1. 按照 [README.md](README.md) 完成环境准备。
+2. 阅读 `docs/design-language.md`、`docs/native-api.md` 和 `AGENTS.md`。
+3. 将 `examples/angle-meter/AngleMeter.tsx` 复制到新的 `src/apps/<id>/` 目录。
+4. 在 `src/apps/registry.ts` 中添加 `MiniAppDefinition`。
+5. 使用共享输入；主屏幕、全屏、设置和模拟模式已有实现。
+6. 提交 pull request，附简短说明、截图或视频、操作方式及测试情况。
 
-Keep app scope small enough that someone can understand it by moving their laptop a little. Make it useful or funny in its first few seconds. Don't require slamming, force, or closing the lid completely. Clearly handle missing input and allow a return home.
+让应用足够简单，用户稍微移动屏幕就能理解，并在最初几秒感到实用或有趣。不要要求猛合屏幕、施加额外力量或完全合盖。明确处理输入不可用状态，并始终允许返回主屏幕。
 
-## Other ways to help
+## 其他贡献方式
 
-- Test a MacBook / macOS combination and report its model identifier, OS version, whether the sensor reads, and whether resume reconnects. Do not include serial numbers.
-- Improve the original 3D monster's topology, fur, rigging, lighting and expressions while preserving continuous interaction and the peeking-window icon.
-- Improve the accordion timbre, score-following or musical keyboard controls. Include exact score provenance for new MIDI material.
-- Improve accessibility, performance, tests, documentation, or compact layout.
+- 测试 MacBook / macOS 组合，反馈型号标识、系统版本、是否能读取传感器以及唤醒后是否重连。不要提供序列号。
+- 改进绿色独眼 3D 怪兽的拓扑、皮肤材质、绑定、灯光与表情，同时保留连续交互和窗口探头图标。
+- 改进手风琴音色、乐谱跟随或键盘音乐操作。新增 MIDI 必须提供准确的乐谱来源。
+- 改进无障碍体验、性能、测试、文档或紧凑布局。
 
-## Pull request checklist
+## Pull request 检查清单
 
-- The new app consumes `useHinge()` or `hinge.getSnapshot()`, not a new hardware process.
-- Live, unavailable and simulated states are correctly labeled.
-- Visuals follow the font/palette rules; the screenshot shows the actual implementation.
-- Home, fullscreen and keyboard controls remain usable. Input handlers do not interfere with text fields or modals.
-- Timers, RAFs, event handlers, Three.js resources and audio are cleaned up on exit.
-- `npm run build`, `npm test`, and relevant Electron tests pass.
-- Assets have provenance. Do not add third-party binary files with unverified redistribution terms.
+- 新应用使用 `useHinge()` 或 `hinge.getSnapshot()`，不创建新的硬件进程。
+- 实时、不可用和模拟状态标注正确。
+- 视觉效果符合字体与配色规范，截图展示实际实现。
+- 主屏幕、全屏和键盘控制正常；输入处理不干扰文本字段或模态对话框。
+- 退出应用时清理定时器、RAF、事件处理、Three.js 资源和音频。
+- 修改核心交互后，`npm run build`、`npm test` 和 `npm run test:desktop` 通过。使用 `npm run test:web` 覆盖浏览器和紧凑布局；修改 Rust 服务后还需执行 `npm run test:rust`、Cargo 格式检查和 Clippy。
+- 修改打包流程后，`npm run package` 和 `npm run test:package` 通过。另行检查打包界面：进程存活不能证明渲染器正常。绝不能分发 `desktop-test` 构建。
+- 仅修改文档时，对照源码验证文档描述并格式化修改的文档，无需完整重建应用。根目录和 `docs/` 中的 Markdown 文档统一使用中文。
+- 资源具有来源信息，不添加再分发条款未经确认的第三方二进制文件。
 
-The repository has not yet selected an open-source license for project code. Ask the maintainer before reusing substantial code outside this project; submitting a contribution does not change third-party asset rights.
+项目代码尚未选择开源许可证。在本项目之外复用大量代码前，请询问维护者；提交贡献不会改变第三方资源的权利归属。

@@ -1,32 +1,32 @@
 # Laptop Pinball
 
-A hinge-only precision game. Closing the lid below the neutral angle tilts the whole 3D table away; opening above neutral reverses gravity. The ball has inertia, so players must brake before reaching a target.
+一款只使用铰链控制的精准游戏。屏幕合至低于中立角度时，整个 3D 球桌向远端倾斜；打开至高于中立角度时，重力方向反转。球具有惯性，因此玩家必须在抵达目标前刹车。
 
-## Course loop
+## 关卡循环
 
-1. Start rolling and settle on the red ring. Keep speed below the displayed threshold for the uninterrupted hold duration.
-2. Reverse direction and hold the second ring. Moving too fast or leaving a ring resets its hold progress.
-3. The final hole opens. Enter slowly before the timer expires.
+1. 开始滚动并停在红圈上；速度必须持续低于界面显示的阈值，直至满足不间断保持时间。
+2. 反向移动并停稳在第二个圆环。速度过快或离开圆环会重置保持进度。
+3. 最终球洞打开；在倒计时结束前缓慢进入。
 
-Either open end drains the ball. A lost ball or expired timer ends the round; **Try again** resets it. Pause, unavailable input, focus loss, hidden documents and open dialogs freeze the simulation. Resume does not advance elapsed time during the gap.
+球从任一开放端滚出都会丢失。丢球或时间结束会终止本局；**Try again** 会重置游戏。暂停、输入不可用、窗口失焦、文档隐藏或对话框打开时，物理模拟冻结；恢复后不会把中断期间计入已用时间。
 
-| Course            | Time       | Maximum capture speed | Checkpoint hold |
-| ----------------- | ---------- | --------------------- | --------------- |
-| Brake & return    | 28 seconds | 0.65 m/s              | 0.55 seconds    |
-| Thread the needle | 25 seconds | 0.50 m/s              | 0.70 seconds    |
-| No room for error | 24 seconds | 0.40 m/s              | 0.80 seconds    |
+| 关卡              | 时间  | 最大捕获速度 | 检查点保持时间 |
+| ----------------- | ----- | ------------ | -------------- |
+| Brake & return    | 28 秒 | 0.65 m/s     | 0.55 秒        |
+| Thread the needle | 25 秒 | 0.50 m/s     | 0.70 秒        |
+| No room for error | 24 秒 | 0.40 m/s     | 0.80 秒        |
 
-A clear awards three stars when completed in less than 65% of the deadline, two below 85%, and one otherwise. Ratings describe the current round; no online leaderboard or persistent best-time storage is added.
+在时限的 65% 以内完成可得三星，85% 以内完成可得两星，其余成功情况为一星。评级仅描述当前一局；没有在线排行榜或持久化最佳时间。
 
-The neutral angle defaults to 105°. While paused, **Level at…** can set a comfortable neutral between 75° and 120° and reset the round. Full closure is never required. Simulation and live input remain explicitly labeled in the shared dock and game readout.
+中立角度默认为 105°。暂停时，**Level at…** 可将舒适的中立角度设置在 75–120°，并重置本局。游戏不要求完全合盖。模拟输入和实时输入始终在共享 Dock 与游戏读数中明确标注。
 
-## Implementation and verification
+## 实现与验证
 
-- All input comes from `src/hinge/index.ts`; no sensor or IPC changes.
-- Fixed 120 Hz physics, frame-gap clamp, projected gravity and damping. One guided axis makes the lid the only required input.
-- Three.js meshes include the actual hole and its cover, active checkpoint rings, rotating table and rolling ball. Render loops, resize observers, geometry, materials, shadow map and renderer are disposed on route exit.
-- Six physics tests cover input direction, pause/unavailable freezing, terminal failure, continuous checkpoint holds, final capture and a controlled solution to every course within its deadline using 75–135° simulated input.
-- Electron QA covers registry launch, tilt and speed changes, pause, unavailable input, reset, loss/retry, modal navigation, fullscreen and 320/375/414/768px layouts. Screenshots are visually inspected.
-- Gameplay validation uses simulation. Physical hinge sweeps, human difficulty balancing and physical sleep/wake testing remain hands-on checks.
+- 所有输入来自 `src/hinge/index.ts`，不新增传感器或 IPC。
+- 使用固定 120 Hz 物理更新、帧间隔限制、投影重力和阻尼。单一导向轴保证铰链是唯一必需输入。
+- Three.js 网格包含真实球洞及盖板、活动检查点圆环、旋转球桌和滚动球。离开路由时释放渲染循环、ResizeObserver、几何体、材质、阴影贴图和渲染器。
+- 六项物理测试覆盖输入方向、暂停/不可用冻结、终止失败、连续检查点保持、最终捕获，以及使用 75–135° 模拟输入在时限内完成每个关卡的受控解法。
+- Tauri 桌面 QA 覆盖注册表启动、倾斜、暂停和输入不可用；单元测试覆盖关卡机制；浏览器 QA 覆盖 320/375/414/768px 布局。执行过的检查及边界见 `verification.md`。
+- 游戏验证使用模拟输入。物理铰链开合、真人难度平衡和真实睡眠/唤醒测试仍需人工完成。
 
-![Laptop Pinball desktop](screenshots/pinball.png)
+![Laptop Pinball 桌面界面](screenshots/pinball.png)
