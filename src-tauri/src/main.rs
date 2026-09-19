@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #[cfg(target_os = "macos")]
+mod hid;
+#[cfg(target_os = "macos")]
 mod power;
 mod sensor;
 use sensor::{SensorFrame, SensorService};
@@ -45,6 +47,17 @@ fn hinge_test_control(
     Ok(())
 }
 fn main() {
+    // Worker mode must exit before constructing Tauri or installing desktop plugins.
+    let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.first().is_some_and(|arg| arg == "--sensor-worker") {
+        if args.len() > 2 || (args.len() == 2 && args[1] != "--once") {
+            std::process::exit(64);
+        }
+        #[cfg(target_os = "macos")]
+        std::process::exit(hid::run_worker(args.len() == 2));
+        #[cfg(not(target_os = "macos"))]
+        std::process::exit(2);
+    }
     let builder = tauri::Builder::default();
     #[cfg(feature = "desktop-test")]
     let builder = builder
@@ -67,9 +80,8 @@ fn main() {
         ctrlc::set_handler(move || exit_handle.exit(0))?;
         #[cfg(feature = "desktop-test")]
         app.add_capability(r#"{"identifier":"desktop-test","windows":["main"],"permissions":["wdio:default","core:window:allow-set-size","core:window:allow-set-focus","allow-hinge-test-control"]}"#)?;
-        let helper = std::env::current_exe()?.parent().ok_or("Missing executable directory")?.join("lid-sensor");
         let handle = app.handle().clone();
-        app.manage(SensorService::start(helper, move |frame| { let _ = handle.emit_to("main", "hinge:frame", frame); }));
+        app.manage(SensorService::start(move |frame| { let _ = handle.emit_to("main", "hinge:frame", frame); }));
         tauri::WebviewWindowBuilder::from_config(app, &app.config().app.windows[0])?
             .on_navigation(|url| {
                 (url.scheme() == "tauri" && url.host_str() == Some("localhost")) ||

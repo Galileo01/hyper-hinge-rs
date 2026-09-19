@@ -98,21 +98,27 @@ hinge.fullscreen(enabled: boolean): Promise<void>
 
 ## 原生协议
 
-`native/lid-sensor.c` 被编译为 `bin/lid-sensor`，构建过程还会复制一份带架构后缀的 Tauri sidecar 输入。Rust 服务只从应用可执行文件目录启动一个 helper；打包后的文件为 `HyperHinge.app/Contents/MacOS/lid-sensor`。helper 匹配 Apple HID vendor `0x05AC`、usage page `0x20`、usage `0x8A`。它请求 feature report ID 1，检查调用结果、最小长度、report ID 和 0–180° 数值范围，再从第 1、2 字节解码小端 16 位角度。
+采集与桌面服务均由 Rust 实现，发布包只包含一个 `hyper-hinge` 可执行文件。主进程以 `--sensor-worker` 参数启动自身的独立采集进程；该模式在创建 Tauri、窗口和测试插件前分流退出。传感器工作进程只读取硬件，不提供网络服务或任意命令执行能力。
+
+`src-tauri/src/hid.rs` 直接调用 IOKit/CoreFoundation，匹配 Apple HID vendor `0x05AC`、usage page `0x20`、usage `0x8A`。它请求 feature report ID 1，检查调用结果、返回长度、report ID 和 0–180° 数值范围，从第 1、2 字节解码小端 16 位角度。句柄由采集进程中的同一线程持有，通过 RAII 关闭和释放。
 
 ```sh
-npm run native
-./bin/lid-sensor --once
-# {"angle":108}     （仅为示例，实际机器读数会变化）
-./bin/lid-sensor
-# 每行一条 JSON，请求间隔 20ms
+npm run build
+./src-tauri/target/aarch64-apple-darwin/release/hyper-hinge --sensor-worker --once
+# {"angle":111.0}  （仅为示例，实际读数会变化）
+./src-tauri/target/aarch64-apple-darwin/release/hyper-hinge --sensor-worker
+# 每行一条 JSON，请求间隔 20ms；Ctrl+C 停止
 ```
 
-不可用时，helper 输出 `{"error":"..."}` 并以非零状态退出。它处理终止信号并关闭 HID 设备。IOKit 仅用于读取，不会改变睡眠行为，也不会独占设备。
+采集进程沿用逐行 JSON 协议；成功时输出 `{"angle":...}`，错误时输出 `{"error":"..."}` 并以非零状态退出。每条输出立即刷新。JSON 是两个 Rust 进程之间的内部传输协议，小应用仍只使用共享 SDK。
 
-helper 请求 **50 Hz**，这不代表每秒有 50 次相互独立的硬件测量；真实采样率、分辨率、访问方式和精度取决于机型与驱动。在开发机器上，报告为整数角度。SDK 使用基于时间的指数角度滤波（75ms 时间常数）和速度滤波（100ms），以 50 Hz 发布。样本间隔超过 500ms 时重置导数。
+保留进程隔离是为了应对同步 `IOHIDDeviceGetReport` 阻塞：停止时主进程先发送 SIGTERM，等待最多约 200ms；若仍未退出则发送 SIGKILL，随后回收进程并等待输出读取线程结束，再启动下一代。强制终止后的系统资源由操作系统回收，不能声称 Rust 析构已执行。旧一代事件会被丢弃。进程退出或启动失败 3 秒后重试，超过 1.5 秒没有有效读数时由周期性 watchdog 重启；挂起时停止采集，恢复时重新启动。停止逻辑不依赖 HID 调用返回，但无法为内核故障或进程回收提供硬实时保证。
 
-Rust 服务会在 helper 失败 3 秒后重试；最后一次有效读数超过 1.5 秒时重启 helper；系统挂起/恢复时停止并重新启动。渲染器也会在实时数据流超过 1.5 秒未更新时标记为过期。恢复逻辑已实现，但真实睡眠/唤醒周期仍需硬件 QA。
+采集进程处理终止信号、输出管道断开，并在正常采样循环中检查是否失去父进程。主进程异常消失且 HID 调用同时阻塞时，这些检查无法执行；这不等同于操作系统级的父进程死亡通知。
+
+请求频率为 **50 Hz**，不代表每秒有 50 次独立硬件测量。实际采样率、精度和分辨率取决于机型与驱动。SDK 保留基于时间的角度滤波（75ms）与速度滤波（100ms），超过 500ms 的样本间隔会重置导数；渲染器超过 1.5 秒没有实时更新时标记为过期。
+
+不再需要 C helper、`npm run native`、Tauri `externalBin` 或 `rust-hid` feature。普通 `npm run dev`、`npm run build` 和 `npm run package` 均使用 Rust 采集进程。真实睡眠/唤醒周期仍需硬件 QA，测试命令触发的挂起/恢复只能验证服务逻辑。
 
 ## 添加应用
 

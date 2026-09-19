@@ -1,8 +1,19 @@
-# 验证记录 — 2026-09-11
+# 验证记录
+
+## 2026-09-12：原生采集完成 Rust 迁移
+
+- 默认采用同一可执行文件的 `--sensor-worker` 采集进程，已删除 C 源码、编译脚本、旧 helper 二进制和 Tauri `externalBin` 配置。
+- 6 项 Rust 测试通过，包含 HID 报告校验和忽略 SIGTERM 的阻塞子进程被强制终止、回收的测试。另有 2 项默认忽略项：物理硬件探针和由停机测试显式启动的子进程夹具。
+- 22 项 Node 测试、Clippy、格式检查和构建通过。
+- `HYPERHINGE_REQUIRE_SENSOR=1 npm run test:desktop` 的 7 项 WKWebView 回归通过，要求默认 Rust 后端的实时传感器可用。
+- `npm run package` 和 `HYPERHINGE_REQUIRE_SENSOR=1 npm run test:package` 通过。包内只有一个 arm64 `hyper-hinge` 可执行文件，测试专用能力未被打包。采集模式验证了单次读数、至少 3 条有效连续输出和 SIGTERM 正常退出，主应用验证了启动与正常退出。检查时读数为 111°。
+- 本轮界面回归使用测试构建的 WKWebView；生产包检查的进程存活不等于生产包界面验收。未执行物理屏幕开合、真实睡眠/唤醒或长时间功耗测量。
+
+以下为 2026-09-11 的历史检查，不能视为本轮重新执行的结果。
 
 ## Rust 桌面迁移
 
-macOS Apple Silicon 应用使用 Tauri 和 Rust 传感器监督服务，并保留 C HID helper 与 React/Three.js/Web Audio 前端。Electron 主进程、preload、开发启动器及其依赖均已移除。
+当时 macOS Apple Silicon 应用使用 Tauri 和 Rust 传感器监督服务，并保留 C HID helper 与 React/Three.js/Web Audio 前端。Electron 主进程、preload、开发启动器及其依赖均已移除。
 
 ## 已执行检查
 
@@ -12,7 +23,7 @@ macOS Apple Silicon 应用使用 Tauri 和 Rust 传感器监督服务，并保�
 - 实际 macOS WKWebView 桌面测试的 7 个用例全部通过：外壳/字体/共享输入/原生全屏；离线恢复/校准；怪兽慢速获胜/快速失败；MIDI 运动门控/非零波形/八度控制/音频清理；可逆城市；弹球暂停/离线行为；渲染器重载后的校准持久化。
 - 音频测试会显式恢复原生焦点，并在需要时再次点击 Enable sound。早期失败期间观察到了原生 blur/visibility 事件，应用按设计禁用了声音。单独的合成 blur 断言验证该行为，没有关闭产品保护措施。
 - Chromium 和 WebKit 浏览器预览在 320、375、414、768 和 1440px 下通过全部五个应用路由检查，没有横向溢出或页面错误。截图位于 `work/qa/browser`。
-- 生产 `.app` 打包成功。包检查验证 arm64 可执行文件、bundle 标识、内嵌 WebDriver/测试命令字符串不存在、真实 helper 读数、启动与正常退出。该机器在检查时报告 100°；这不代表进行了物理开合测试。
+- 生产 `.app` 打包成功。包检查验证 arm64 可执行文件、bundle 标识、内嵌 WebDriver/测试命令字符串不存在、真实传感器读数、启动与正常退出。该机器在检查时报告 100°；这不代表进行了物理开合测试。
 - 通过原生 UI 自动化打开了生产应用。实际主屏幕显示精确标语、本地点阵字体和实时输入；原生 Esc 可关闭 Settings；路由跳转后怪兽场景及其主屏幕探头图标均能渲染。也检查了 `work/qa` 中的桌面截图。
 
 ## 产物与对比

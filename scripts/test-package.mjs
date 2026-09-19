@@ -1,11 +1,13 @@
 import { spawn, execFileSync } from "node:child_process";
-import { accessSync, constants } from "node:fs";
+import { accessSync, constants, readdirSync } from "node:fs";
 import assert from "node:assert/strict";
 import path from "node:path";
 const app = path.resolve("release/HyperHinge.app");
 const binary = path.join(app, "Contents/MacOS/hyper-hinge");
-const helper = path.join(app, "Contents/MacOS/lid-sensor");
-for (const file of [binary, helper]) {
+assert.deepEqual(readdirSync(path.join(app, "Contents/MacOS")).sort(), [
+  "hyper-hinge",
+]);
+for (const file of [binary]) {
   accessSync(file, constants.X_OK);
   assert.match(execFileSync("file", [file], { encoding: "utf8" }), /arm64/);
 }
@@ -31,7 +33,11 @@ assert.ok(
 let sensor;
 try {
   sensor = JSON.parse(
-    execFileSync(helper, ["--once"], { encoding: "utf8", timeout: 5000 }),
+    execFileSync(binary, ["--sensor-worker", "--once"], {
+      encoding: "utf8",
+      timeout: 5000,
+      killSignal: "SIGKILL",
+    }),
   );
 } catch (error) {
   if (process.env.HYPERHINGE_REQUIRE_SENSOR === "1") throw error;
@@ -39,6 +45,60 @@ try {
     available: false,
     reason: "No supported sensor; live acceptance remains pending",
   };
+}
+if (typeof sensor.angle === "number") {
+  assert.ok(
+    Number.isFinite(sensor.angle) && sensor.angle >= 0 && sensor.angle <= 180,
+  );
+  // Verify that worker mode streams/flushed output and exits on SIGTERM without
+  // constructing the desktop application or requiring a window close.
+  const worker = spawn(binary, ["--sensor-worker"], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let samples = 0;
+  let pending = "";
+  let failure;
+  let requestedStop = false;
+  const timeout = setTimeout(() => {
+    failure = new Error("Sensor stream did not finish within 5 seconds");
+    worker.kill("SIGKILL");
+  }, 5000);
+  worker.stdout.on("data", (chunk) => {
+    pending += chunk;
+    const lines = pending.split("\n");
+    pending = lines.pop();
+    try {
+      for (const line of lines) {
+        const frame = JSON.parse(line);
+        assert.ok(
+          Number.isFinite(frame.angle) &&
+            frame.angle >= 0 &&
+            frame.angle <= 180,
+        );
+        samples++;
+      }
+      if (samples >= 3 && !requestedStop) {
+        requestedStop = true;
+        worker.kill("SIGTERM");
+      }
+    } catch (error) {
+      failure = error;
+      worker.kill("SIGKILL");
+    }
+  });
+  try {
+    const result = await new Promise((resolve, reject) => {
+      worker.once("error", reject);
+      worker.once("exit", (code, signal) => resolve({ code, signal }));
+    });
+    if (failure) throw failure;
+    assert.ok(samples >= 3);
+    assert.deepEqual(result, { code: 0, signal: null });
+  } finally {
+    clearTimeout(timeout);
+    if (worker.exitCode === null && worker.signalCode === null)
+      worker.kill("SIGKILL");
+  }
 }
 const processRef = spawn(binary, [], { stdio: ["ignore", "pipe", "pipe"] });
 let errors = "";

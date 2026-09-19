@@ -22,7 +22,7 @@ Inter Variable 由 Rasmus Andersson 创作，采用 SIL Open Font License 1.1。
 
 ## 原生传感器技术
 
-HID report 机制参考了公开实验，包括 https://gist.github.com/alessaba/098f83c587e1372d30dea36a7c18b7cc 。项目的 C helper 为本地实现，包含 report 校验、流式输出、资源清理和结构化错误。匹配标识符属于硬件协议事实。Apple 在 https://github.com/apple/darwin-xnu/blob/main/iokit/IOKit/pwr_mgt/IOPM.h 中记录了独立的合盖布尔值。
+HID report 机制参考了公开实验，包括 https://gist.github.com/alessaba/098f83c587e1372d30dea36a7c18b7cc 。项目的 Rust HID 采集后端为本地实现，包含 report 校验、流式输出、资源清理和结构化错误。匹配标识符属于硬件协议事实。Apple 在 https://github.com/apple/darwin-xnu/blob/main/iokit/IOKit/pwr_mgt/IOPM.h 中记录了独立的合盖布尔值。
 
 ## 美术
 

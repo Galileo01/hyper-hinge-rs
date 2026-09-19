@@ -8,7 +8,6 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "native": "node scripts/build-native.mjs",
     "dev": "tauri dev --target aarch64-apple-darwin",
     "dev:web": "node scripts/check-assets.mjs && vite --host 127.0.0.1",
     "build": "tauri build --target aarch64-apple-darwin --no-bundle",
@@ -20,7 +19,7 @@
     "format": "prettier --write src scripts tests examples docs README.md AGENTS.md CONTRIBUTING.md package.json package-lock.json vite.config.ts index.html src-tauri/tauri.conf.json src-tauri/capabilities/main.json && cargo fmt --manifest-path src-tauri/Cargo.toml",
     "format:check": "prettier --check src scripts tests examples docs README.md AGENTS.md CONTRIBUTING.md package.json package-lock.json vite.config.ts index.html src-tauri/tauri.conf.json src-tauri/capabilities/main.json && cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
     "test:package": "node scripts/test-package.mjs",
-    "prepare:desktop": "node scripts/check-assets.mjs && npm run native",
+    "prepare:desktop": "node scripts/check-assets.mjs",
     "build:frontend": "node scripts/check-assets.mjs && tsc --noEmit && vite build",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml --target aarch64-apple-darwin",
     "test:web": "node scripts/test-web.mjs"

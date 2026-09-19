@@ -21,6 +21,7 @@ tauri-plugin-wdio = { version = "1.4", optional = true }
 tauri-plugin-wdio-webdriver = { version = "1.4", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
 objc2 = "0.6"
 objc2-app-kit = { version = "0.3", features = ["NSWorkspace"] }
 objc2-foundation = { version = "0.3", features = ["NSNotification", "NSString", "NSOperation", "block2"] }

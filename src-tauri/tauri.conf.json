@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "npm run prepare:desktop && npm run dev:web",
     "devUrl": "http://127.0.0.1:5173",
-    "beforeBuildCommand": "npm run build:frontend && npm run native",
+    "beforeBuildCommand": "npm run build:frontend",
     "frontendDist": "../dist"
   },
   "app": {
@@ -33,7 +33,6 @@
     "active": true,
     "targets": ["app"],
     "icon": ["../public/hyperhinge.icns", "../public/hyperhinge.png"],
-    "externalBin": ["binaries/lid-sensor"],
     "macOS": {
       "minimumSystemVersion": "12.0"
     }

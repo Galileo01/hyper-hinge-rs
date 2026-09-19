@@ -1,7 +1,6 @@
 use serde::Serialize;
 use std::{
     io::{BufRead, BufReader, Read},
-    path::PathBuf,
     process::{Child, Command, Stdio},
     sync::{mpsc, Arc, Mutex},
     thread::{self, JoinHandle},
@@ -206,7 +205,7 @@ pub struct SensorService {
     worker: Mutex<Option<JoinHandle<()>>>,
 }
 impl SensorService {
-    pub fn start(helper: PathBuf, emit: impl Fn(SensorFrame) + Send + 'static) -> Self {
+    pub fn start(emit: impl Fn(SensorFrame) + Send + 'static) -> Self {
         let snapshot = Arc::new(Mutex::new(SensorFrame::offline(
             "Connecting to lid sensor…",
         )));
@@ -215,7 +214,8 @@ impl SensorService {
         let events = sender.clone();
         let worker = thread::spawn(move || {
             let launch: Launch = Box::new(move |generation| {
-                let mut child = Command::new(&helper)
+                let mut child = Command::new(std::env::current_exe().map_err(|e| e.to_string())?)
+                    .arg("--sensor-worker")
                     .stdin(Stdio::null())
                     .stdout(Stdio::piped())
                     .stderr(Stdio::null())
@@ -296,6 +296,67 @@ impl Drop for SensorService {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
+    #[test]
+    #[ignore = "subprocess fixture, launched by shutdown_kills_stalled_worker"]
+    fn stubborn_child() {
+        if std::env::var_os("HYPERHINGE_STUBBORN_TEST").is_none() {
+            return;
+        }
+        // SAFETY: test fixture deliberately ignores graceful termination.
+        unsafe {
+            libc::signal(libc::SIGTERM, libc::SIG_IGN);
+        }
+        println!("READY");
+        loop {
+            thread::park();
+        }
+    }
+    #[cfg(unix)]
+    #[test]
+    fn shutdown_kills_stalled_worker() {
+        use std::os::unix::process::ExitStatusExt;
+        let mut child = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "sensor::tests::stubborn_child",
+                "--ignored",
+                "--nocapture",
+            ])
+            .env("HYPERHINGE_STUBBORN_TEST", "1")
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut input = BufReader::new(child.stdout.take().unwrap());
+        loop {
+            let mut line = String::new();
+            assert_ne!(
+                input.read_line(&mut line).unwrap(),
+                0,
+                "fixture exited before ready"
+            );
+            if line.trim() == "READY" {
+                break;
+            }
+        }
+        let reader = thread::spawn(move || {
+            let mut remaining = String::new();
+            input.read_to_string(&mut remaining).unwrap();
+        });
+        let mut process = NativeProcess {
+            child,
+            reader: Some(reader),
+        };
+        let start = Instant::now();
+        process.stop();
+        assert!(start.elapsed() < Duration::from_secs(2));
+        assert_eq!(
+            process.child.try_wait().unwrap().unwrap().signal(),
+            Some(libc::SIGKILL)
+        );
+        assert!(process.reader.is_none());
+        process.stop(); // repeated shutdown must be harmless
+    }
     struct Fake(Arc<Mutex<Vec<&'static str>>>);
     impl Process for Fake {
         fn stop(&mut self) {

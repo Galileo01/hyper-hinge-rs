@@ -28,21 +28,23 @@ npm run setup:assets
 npm run dev
 ```
 
-如果安装了 Make，`make` 等同于 `npm run build`，构建生产前端、Rust 桌面服务和原生 helper；`make dev` 等同于 `npm run dev`，启动 Tauri 开发应用和 Vite。请先完成依赖安装和资源准备。
+如果安装了 Make，`make` 等同于 `npm run build`，构建生产前端、Rust 桌面服务与传感器采集进程；`make dev` 等同于 `npm run dev`，启动 Tauri 开发应用和 Vite。请先完成依赖安装和资源准备。
 
 `setup:assets` 获取本项目使用的指定第三方字体和 MIDI，并验证 SHA-256。这些文件不随 Git 分发，详见[资源来源](docs/third-party.md)。如果已经拥有相应资源，可按 `docs/assets.json` 指定的路径放置。
 
-Rust 负责原生服务；现有只读 C helper 继续负责硬件适配。前端仍使用 React、Three.js 和 Web Audio。
+Rust 负责桌面服务和只读 HID 硬件采集；两者运行在同一个可执行文件的不同进程中，以隔离阻塞的系统调用。前端仍使用 React、Three.js 和 Web Audio。
+
+普通开发与打包命令默认使用 Rust 采集后端，不再需要 C helper 或额外 feature。进程协议和生命周期见 [原生 API 文档](docs/native-api.md#原生协议)。
 
 ```sh
 npm run dev:web      # 浏览器预览，默认使用模拟输入
-npm run build        # 类型检查、生产前端、原生 helper、Rust 桌面程序
+npm run build        # 类型检查、生产前端、Rust 桌面程序与采集模式
 npm test             # 信号处理、游戏规则、MIDI 来源验证
 npm run test:rust    # 原生服务生命周期与协议测试
 npm run test:web     # Chromium/WebKit 模拟测试，需先安装 Playwright 浏览器
 npm run test:desktop # 实际 WKWebView 测试，先构建专用测试应用
 npm run package      # 在 release/ 生成 Apple Silicon macOS 应用
-npm run test:package # 检查包结构、helper、启动与正常退出
+npm run test:package # 检查单一可执行文件、采集模式、启动与正常退出
 ```
 
 本地 `.app` 使用优化的 release 构建，未进行分发签名或公证。应用不需要 root、辅助功能权限或修改系统电源设置。`test:package` 验证进程存活，不验证界面渲染；生产应用的界面需要另外检查。如需强制要求硬件读取成功，可设置 `HYPERHINGE_REQUIRE_SENSOR=1` 后运行打包检查。
@@ -67,14 +69,14 @@ npm run test:package # 检查包结构、helper、启动与正常退出
 
 ```text
 Apple HID 传感器
-  → 一个只读 C helper（请求频率 50 Hz）
+  → 一个只读 Rust 采集进程（请求频率 50 Hz）
   → 一个 Rust/Tauri 服务
   → 受限的 Tauri 命令/事件适配层
   → 一个共享 JS 状态仓库（滤波、速度、校准、模拟）
   → Lid Lab / Don’t Wake Up / Accordion / The Other Side / Laptop Pinball
 ```
 
-小应用在 React 界面中使用 `useHinge()`，在渲染循环中使用 `hinge.getSnapshot()`。应用自身不启动 helper、不轮询 IOKit，也不创建另一条硬件数据流。切换应用时，共享输入保持一致。
+小应用在 React 界面中使用 `useHinge()`，在渲染循环中使用 `hinge.getSnapshot()`。应用自身不启动采集进程、不轮询 IOKit，也不创建另一条硬件数据流。切换应用时，共享输入保持一致。
 
 ```tsx
 import { useHinge } from "../../hinge";
@@ -95,7 +97,6 @@ export function MyApp() {
 | ---------------------------- | ---------------------------------------------------- |
 | `src/`                       | React 界面、Three.js 场景、Web Audio 和共享输入状态  |
 | `src-tauri/`                 | Rust 桌面服务、生命周期、权限和打包配置              |
-| `native/`                    | 只读 C HID helper 源码                               |
 | `scripts/`、`tests/`         | 资源准备与校验、构建、打包和回归测试                 |
 | `public/`                    | 字体、MIDI 和图标，需保留资源来源信息                |
 | `dist/`、`src-tauri/target/` | 可重建的前端输出和 Rust 构建产物                     |

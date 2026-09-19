@@ -1,36 +1,43 @@
-# HyperHinge 贡献者与代理规则
+# HyperHinge 仓库规则
 
-修改界面或传感器集成前，阅读 `docs/design-language.md` 和 `docs/native-api.md`；这两份文档具有规范效力。项目所有者明确更新规则时，以其指示为准。
+本文件规定在本仓库中持续适用的工程约束。用户在当前任务中的明确指示优先。修改界面前阅读 `docs/design-language.md`；修改传感器、桌面桥接或原生服务前阅读 `docs/native-api.md`。两份文档具有规范效力，相关实现变化时必须同步更新。
 
-## 产品
+## 产品约束
 
-- 名称为 HyperHinge。标语必须原样保留：`Did you know there's a hinge sensor in your Macbook?`
-- 主屏幕类似 iPad：实用的铰链组件位于已注册应用图标上方。应用列表由注册表管理。
-- 应用包括 Lid Lab、Don’t Wake Up、Accordion、The Other Side 和 Laptop Pinball。所有位置都应支持返回主屏幕和全屏。
-- 不要恢复 Reality Stabilizer、原仪表盘侧栏、绿色界面强调色或纸质海报风格美术。
-- Nothing 风格界面必须使用指定的红/黑/白/灰设计变量。展示字体为 Ndot 57，其余界面使用 Inter，不得静默替换。实际 3D 游戏美术可使用其规定的材质配色。
-- 怪兽必须是真实且持续动画的 3D 角色。主屏幕图标使用同一个角色从窗口探头的形象，不得以精灵图姿势切换代替。
-- Accordion 必须使用真实的源 MIDI。不得编造旋律，也不得把合成音符标成真实乐谱。保留来源信息和确定性的资源哈希。
-- 用户应能轻松“假装演奏”：键盘操作要简单且具有音乐性。游戏必须在完全合盖前结束。
+- 产品名称为 HyperHinge。标语必须原样保留：`Did you know there's a hinge sensor in your Macbook?`
+- 应用由 `src/apps/registry.ts` 注册，并使用共享外壳提供的主屏幕返回和全屏能力。
+- 界面、字体、配色、3D 角色、游戏交互和 Accordion 音乐资源遵循 `docs/design-language.md`，不要在本文件中另建一套设计规范。
+- 模拟输入必须明确标记。仅使用模拟器验证时，不得声称已测试物理硬件、合盖安全或睡眠/唤醒周期。
 
-## 架构
+## 架构边界
 
-- 一个 C helper → 一个 Rust/Tauri 服务 → 受限桌面适配层 → 一个共享 JS 状态仓库 → 所有应用。
-- 应用输入从 `src/hinge/index.ts` 导入。禁止各应用自行启动传感器进程或读取 IOKit。
-- 使用本地 WKWebView、最小化 Tauri capabilities 和显式命令。不得暴露不受限的 IPC、shell、文件系统或 Node API。WebDriver 和测试命令仅在 `desktop-test` feature 下编译；绝不能分发启用该 feature 的版本。
-- 保留 `available`/`source` 语义，不得将模拟或过期读数伪装为实时硬件数据。
-- 小应用卸载时取消监听器、RAF 和定时器，释放 GPU 资源与音频上下文。避免全局按键处理覆盖对话框、文本输入或系统快捷键。
+- 数据链路保持为：一个原生传感器后端 → 一个 Rust/Tauri 服务 → 受限桌面适配层 → `src/hinge/index.ts` 中的共享状态仓库 → 所有应用。
+- 原生后端位于 `src-tauri/src/hid.rs`。桌面服务通过自身可执行文件的 `--sensor-worker` 模式启动一个 Rust 采集进程，保留进程隔离、单实例、故障恢复和 `available`/`source` 语义。不得重新引入 C helper 或额外 sidecar 二进制。
+- 小应用不得自行启动传感器进程、读取 IOKit 或维护第二份全局传感器状态。应用输入统一从 `src/hinge/index.ts` 导入。
+- React/TypeScript 前端位于 `src/`，Rust 桌面服务位于 `src-tauri/`。除非用户明确要求，不整体改写前端；原生传感器和桌面后端可以继续迁移为 Rust。
+- 应用专属代码放在 `src/apps/<id>/`，共享控件放在 `src/components/`，新应用通过 `src/apps/registry.ts` 注册。
+- 只使用本地 WKWebView、最小化 Tauri capabilities 和显式命令。不得暴露不受限的 IPC、shell、文件系统或 Node API。
+- `desktop-test` feature、WebDriver 和测试命令只用于测试构建，发布产物不得启用或包含它们。
+- 小应用卸载时清理监听器、RAF、定时器、GPU 资源和音频上下文。全局快捷键不得覆盖对话框、文本输入或系统快捷键。
 - 不修改系统睡眠行为，不要求 root，不添加登录项、分析上报或后台网络服务。
-- 应用专属代码放在 `src/apps/<id>`；共享控件放在 `src/components`。新应用通过 `src/apps/registry.ts` 注册。
-- React/TypeScript 前端保留在 `src/`，Rust 桌面代码放在 `src-tauri/`，C helper 放在 `native/`。本次迁移不把前端改写为 Rust。
 
-## 工作流程
+## 资源与文档
 
-- 使用 `rg` 搜索。Python 优先使用 `uv` 而非 `pip`。大型 CSV/JSONL/Excel 数据使用 pandas/NumPy；Excel 默认通过 `pandas.read_excel` 配合 openpyxl 读取。
-- 按 `.gitignore` 排除第三方二进制资源；来源和校验值记录在 `docs/assets.json`。不要为了构建通过而删除资源检查。
-- 修改核心交互后运行 `npm run build`、`npm test` 和 `npm run test:desktop`。仅修改文档时，对照源码核验描述的接口约定，不要增加重复描述实现的测试。
-- 修改 Rust 服务后，还需运行 `npm run test:rust`、Cargo 格式检查和 Clippy。修改打包流程后，运行 `npm run package` 和 `npm run test:package`；实际打包界面验收与进程存活检查分开进行。
-- 修改视觉效果后执行格式化，并检查真实 Tauri/浏览器截图。覆盖桌面和紧凑布局、实时/不可用/模拟状态、焦点处理、主屏幕和全屏。
-- 只使用模拟器时，不得声称已测试物理硬件开合或睡眠/唤醒周期。不得声称程序生成的怪兽达到了电影资产的制作质量。
-- 评审说明聚焦行为、验证结果和实际限制。共享 API 变化时更新相关文档。
-- 根目录和 `docs/` 中的 Markdown 文档统一使用中文。保留精确的产品标语，以及命令、路径和代码/API 标识符；相关实现变化时同步更新文档。
+- 第三方二进制资源按 `.gitignore` 管理，来源和校验值记录在 `docs/assets.json`。不得通过删除资源检查来绕过构建失败。
+- 根目录和 `docs/` 中的 Markdown 文档统一使用中文；产品标语、命令、路径以及代码/API 标识符保持原样。
+- 共享 API、数据协议、构建或打包行为变化时，同步更新对应文档。
+
+## 验证
+
+- 修改前先检查相关脚本和现有测试；使用 `rg` 搜索。
+- 修改前端或核心交互后运行 `npm run build`、`npm test` 和 `npm run test:desktop`。
+- 修改 Rust 服务后还要运行 `npm run test:rust`、`cargo fmt --manifest-path src-tauri/Cargo.toml -- --check` 和 `cargo clippy --manifest-path src-tauri/Cargo.toml --target aarch64-apple-darwin --all-targets --all-features -- -D warnings`。
+- 修改打包流程后运行 `npm run package` 和 `npm run test:package`，并分别报告界面验收与进程存活检查。
+- 修改视觉效果后运行格式检查，并检查真实 Tauri 或浏览器截图，覆盖桌面和紧凑布局、实时/不可用/模拟状态、焦点处理、主屏幕和全屏。
+- 仅修改文档时，对照源码核验接口和命令，并运行格式检查；不要添加只重复实现细节的测试。
+- 完成前运行 `git diff --check`，报告实际执行的验证、未执行项及其限制。
+
+## Git 操作
+
+- 未经用户在当前会话中直接明确要求，不执行 `git commit`、`git push`、merge、rebase、tag 或发布。
+- 不改写或删除用户已有的未提交更改。评审说明只陈述已验证的行为、结果和限制。
