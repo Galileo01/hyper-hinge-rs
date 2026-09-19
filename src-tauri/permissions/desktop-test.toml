@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-hinge-test-control"
+description = "Test-build-only service lifecycle controls."
+commands.allow = ["hinge_test_control"]

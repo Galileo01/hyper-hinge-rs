@@ -1,39 +1,42 @@
-# Verification — 2026-09-10
+# 验证记录
 
-## Executed checks
+## 2026-09-12：原生采集完成 Rust 迁移
 
-- TypeScript typecheck, Vite production build and native C compilation pass.
-- Nine Node tests pass: directional filtering, invalid input, sleep-gap derivative reset, calibration, sample-rate invariance, game win/loss/unavailable behavior, and the source MIDI's hash/contents.
-- Playwright drives the actual Electron app. No Browser plugin was available, so testing uses Electron's real Chromium renderer rather than a mock UI.
-- Native bridge reads successfully on the development M3 Pro (`Mac15,6`), reporting 0° while `AppleClamshellState` is true. No physical sweep is claimed.
-- The test invokes Electron's suspend/resume handlers without sleeping the machine and verifies offline state plus simulator availability. Actual hardware sleep/wake recovery remains a hands-on check.
-- Simulated input stays consistent through Home, all three apps and fullscreen transitions. Native fullscreen is checked through `BrowserWindow.isFullScreen()`; Esc returns normally.
-- A fast simulated close wakes the continuously animated 3D monster. A slow sweep wins at 70°, before full closure.
-- Source MIDI starts, advances, jumps phrases, changes octaves, pauses and produces a nonzero waveform measured through an AnalyserNode. Initial cold audio-device startup required waiting on actual transport progress rather than a fixed 1-second delay.
-- Settings calibration saves, dialogs close with Esc, and contribution instructions are accessible.
-- The main viewport is 1536×1024 CSS pixels; screenshots may include macOS's backing scale. Home was also checked at 320, 375, 414 and 768px with no horizontal overflow.
-- No renderer `pageerror` events during the full interaction run.
-- Final packaged `.app` smoke test passes with `HYPERHINGE_REQUIRE_SENSOR=1`: the helper exists outside ASAR, has execute permission, returns a real available reading, and the packaged renderer loads Ndot 57 and the MIDI score.
+- 默认采用同一可执行文件的 `--sensor-worker` 采集进程，已删除 C 源码、编译脚本、旧 helper 二进制和 Tauri `externalBin` 配置。
+- 6 项 Rust 测试通过，包含 HID 报告校验和忽略 SIGTERM 的阻塞子进程被强制终止、回收的测试。另有 2 项默认忽略项：物理硬件探针和由停机测试显式启动的子进程夹具。
+- 22 项 Node 测试、Clippy、格式检查和构建通过。
+- `HYPERHINGE_REQUIRE_SENSOR=1 npm run test:desktop` 的 7 项 WKWebView 回归通过，要求默认 Rust 后端的实时传感器可用。
+- `npm run package` 和 `HYPERHINGE_REQUIRE_SENSOR=1 npm run test:package` 通过。包内只有一个 arm64 `hyper-hinge` 可执行文件，测试专用能力未被打包。采集模式验证了单次读数、至少 3 条有效连续输出和 SIGTERM 正常退出，主应用验证了启动与正常退出。检查时读数为 111°。
+- 本轮界面回归使用测试构建的 WKWebView；生产包检查的进程存活不等于生产包界面验收。未执行物理屏幕开合、真实睡眠/唤醒或长时间功耗测量。
 
-## Visual fidelity review
+以下为 2026-09-11 的历史检查，不能视为本轮重新执行的结果。
 
-Both `docs/home-concept.png` and the latest real Electron screenshots were opened with `view_image`. The current product follows the concept's Nothing language **with the owner's subsequent explicit changes**; it is not claimed to be pixel-identical to the earlier concept.
+## Rust 桌面迁移
 
-| Point              | Evidence and disposition                                                                                                                                                                                       |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Palette            | Black wallpaper, gray dock, light angle widget, white text and red active controls match the requested Nothing family. Old green accents were removed.                                                         |
-| Typography         | Real local Ndot 57 Aligned and Inter loaded; dotted titles/readouts and readable UI text are visibly distinct.                                                                                                 |
-| Layout             | Owner-requested live angle/motion widgets precede the three app icons. No sidebar or paper poster. This intentionally changes the initial sparse concept.                                                      |
-| Copy               | Exact owner slogan replaces concept copy. App labels remain Lid Lab, Don’t Wake Up and Accordion. Visible additions are functional widget labels, source status, and simulator controls.                       |
-| App icons          | Uniform rounded-square geometry. The middle icon is a real 3D furry monster peeking through a red window, per the later reference. Original 2D blob art is not shipped.                                        |
-| Game art           | Actual 3D geometry, dense instanced fur, horns, eyes and teeth, with continuous arousal-driven animation. Color is confined to the art exception. It remains a procedural prototype, not a film-quality asset. |
-| Interaction chrome | Home/fullscreen remain available, dock is shared, simulator slider appears only when enabled, and native dialogs retain focus behavior.                                                                        |
-| Responsive layout  | Compact icons retain one-line labels; source/simulation/settings remain usable. Descriptive icon subtitles hide at compact widths.                                                                             |
+当时 macOS Apple Silicon 应用使用 Tauri 和 Rust 传感器监督服务，并保留 C HID helper 与 React/Three.js/Web Audio 前端。Electron 主进程、preload、开发启动器及其依赖均已移除。
 
-Packaged-build smoke testing also caught the helper being archived inside ASAR by the current packager default. The helper is now copied as an extra resource and launched outside the archive.
+## 已执行检查
 
-Material issues fixed: stale initial visual direction, static sprite approach, fabricated motion waveform, missing native fullscreen-state synchronization, contribution-dialog focus trapping, and cold audio startup test assumptions. Above-the-fold copy matches the final owner-directed content inventory. No known clipped primary controls or horizontal-overflow issue remains in the checked home viewports.
+- 22 项 Node 测试通过，覆盖滤波、游戏规则、MIDI 来源，以及异步订阅的清理与顺序。
+- 4 项 Rust 测试通过，覆盖协议校验（包括零值）、超时/重启顺序与旧 generation 拒绝、退出/启动失败重试，以及挂起/恢复/关闭。
+- Clippy 对全部 target、全部 feature 且禁止 warning 的检查通过。
+- 实际 macOS WKWebView 桌面测试的 7 个用例全部通过：外壳/字体/共享输入/原生全屏；离线恢复/校准；怪兽慢速获胜/快速失败；MIDI 运动门控/非零波形/八度控制/音频清理；可逆城市；弹球暂停/离线行为；渲染器重载后的校准持久化。
+- 音频测试会显式恢复原生焦点，并在需要时再次点击 Enable sound。早期失败期间观察到了原生 blur/visibility 事件，应用按设计禁用了声音。单独的合成 blur 断言验证该行为，没有关闭产品保护措施。
+- Chromium 和 WebKit 浏览器预览在 320、375、414、768 和 1440px 下通过全部五个应用路由检查，没有横向溢出或页面错误。截图位于 `work/qa/browser`。
+- 生产 `.app` 打包成功。包检查验证 arm64 可执行文件、bundle 标识、内嵌 WebDriver/测试命令字符串不存在、真实传感器读数、启动与正常退出。该机器在检查时报告 100°；这不代表进行了物理开合测试。
+- 通过原生 UI 自动化打开了生产应用。实际主屏幕显示精确标语、本地点阵字体和实时输入；原生 Esc 可关闭 Settings；路由跳转后怪兽场景及其主屏幕探头图标均能渲染。也检查了 `work/qa` 中的桌面截图。
 
-## Remaining limits
+## 产物与对比
 
-Real physical opening/closing dynamics, broader hardware compatibility, sustained GPU/battery profiling and physical sleep/wake transitions need hands-on testing. The macOS build is local and unsigned/unnotarized for distribution. External font/MIDI binaries stay outside Git; the setup script records sources and verifies hashes. The repo does not assert those third-party files have an open redistribution license.
+- 交付物：`release/HyperHinge.app`（本地未签名、未公证应用）。
+- `du -sh` 曾记录 Tauri 包约 26 MiB，隔离的 Electron 基线约 288 MiB。这是磁盘占用，不是运行时内存、CPU 或电量基准。旧 Electron 基线后来已作为可再生成的迁移产物清理。
+- 验证日志包括：`work/unit-test.log`、`work/rust-test.log`、`work/clippy.log`、`work/desktop-final.log`、`work/browser-test.log`、`work/package.log` 和 `work/package-test.log`。`work/` 可清理，删除后这些本地证据不再保留。
+- 启用测试 feature 的二进制只保留在 debug target 目录，不得分发。打包脚本明确在不启用测试 feature 的情况下构建。
+
+## 实际限制
+
+物理屏幕开合、真实睡眠/唤醒、更多硬件兼容性及持续 GPU/电量测量尚未测试。监督服务测试与桌面挂起/恢复钩子只验证软件行为。浏览器 WebKit 检查用于补充实际 WKWebView 测试，不能替代后者。
+
+嵌入式驱动使用合成 DOM 事件：选择 option 和取消 dialog 在自动化中需要显式派发事件；原生对话框取消已在生产应用中单独检查。音频断言测量 Web Audio 输出，不代表真人听感。程序生成的怪兽不是电影生产资产。
+
+外部字体/MIDI 二进制仍排除在 Git 之外；准备与构建脚本保留来源和哈希校验。Electron 校准存储不会导入，首次启动 Tauri 版本时需要重新校准。

@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "hinge-access"
+description = "Read the current sensor frame and control this window's fullscreen state."
+commands.allow = ["hinge_snapshot", "hinge_fullscreen", "hinge_fullscreen_state"]

@@ -1,20 +1,11 @@
 import { useSyncExternalStore } from "react";
 import { HingeEngine } from "./engine.mjs";
+import { isDesktop, onSensorFrame, setFullscreen } from "./desktop";
 export interface SensorFrame {
   available: boolean;
   angle: number | null;
   message: string;
   timestamp: number;
-}
-declare global {
-  interface Window {
-    hyperHinge?: {
-      getSnapshot(): Promise<SensorFrame | null>;
-      onFrame(fn: (frame: SensorFrame) => void): () => void;
-      setFullscreen(enabled: boolean): Promise<void>;
-      onFullscreenChange(fn: (enabled: boolean) => void): () => void;
-    };
-  }
 }
 export interface HingeState {
   angle: number;
@@ -43,7 +34,7 @@ try {
   /* Storage can be disabled in previews. */
 }
 const listeners = new Set<() => void>();
-let simulation = !window.hyperHinge;
+let simulation = !isDesktop;
 let simulatedAngle = 108;
 let live: SensorFrame = {
   available: false,
@@ -73,13 +64,14 @@ const receive = (frame: SensorFrame | null) => {
     }
   }
 };
-const stopNative = window.hyperHinge?.onFrame(receive);
-window.hyperHinge
-  ?.getSnapshot()
-  .then(receive)
-  .catch(() => {
-    live.message = "Sensor bridge unavailable. Try Simulate.";
-  });
+const stopNative = onSensorFrame(receive, () => {
+  live = {
+    ...live,
+    available: false,
+    angle: null,
+    message: "Sensor bridge unavailable. Try Simulate.",
+  };
+});
 function tick() {
   const now = performance.now();
   const available = simulation || (live.available && now - received < 1500);
@@ -138,11 +130,7 @@ export const hinge = {
     if (Number.isFinite(angle))
       simulatedAngle = Math.max(0, Math.min(140, angle));
   },
-  async fullscreen(enabled: boolean) {
-    if (window.hyperHinge) await window.hyperHinge.setFullscreen(enabled);
-    else if (enabled) await document.documentElement.requestFullscreen();
-    else if (document.fullscreenElement) await document.exitFullscreen();
-  },
+  fullscreen: setFullscreen,
 };
 export function useHinge() {
   return useSyncExternalStore(hinge.subscribe, hinge.getSnapshot);

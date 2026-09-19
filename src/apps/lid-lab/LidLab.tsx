@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { hinge, useHinge } from "../../hinge/api";
+import { hinge, useHinge } from "../../hinge/index";
 export function LidLab() {
   const mount = useRef<HTMLDivElement>(null);
   const [failure, setFailure] = useState(false);
